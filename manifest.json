@@ -1,0 +1,11 @@
+{
+    "id": "event-highlight",
+    "name": "Event Highlight",
+    "description": "Render colored bars with relative event dates",
+    "version": "0.0.0",
+    "author": "playmean",
+    "authorUrl": "https://playmean.ru",
+    "fundingUrl": "https://playmean.ru/donate",
+    "minAppVersion": "0.15.0",
+    "isDesktopOnly": false
+}
