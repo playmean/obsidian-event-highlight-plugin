@@ -51,12 +51,17 @@ export default class EventHighlightPlugin extends Plugin {
         moment.relativeTimeThreshold('M', 12);
 
         const workFormatted = workStamp.format(workFormat);
-        const workFromNow = workStamp.fromNow();
+        const workFromNow =
+            !isUpcomming && workStamp.diff(now, 'days') < 7
+                ? workStamp.format('dddd').toLocaleLowerCase()
+                : workStamp.fromNow();
 
         moment.relativeTimeRounding(roundingDefault);
 
         dateSpan.createEl('div', {
-            text: isAfter ? workFormatted : workFromNow,
+            text: isAfter
+                ? workFormatted
+                : `${workFromNow.slice(0, 1).toLocaleUpperCase()}${workFromNow.slice(1)}`,
         });
 
         iconSpan.style.display = 'inline-flex';
