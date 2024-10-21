@@ -17,7 +17,7 @@ export default class EventHighlightPlugin extends Plugin {
 
         const now = moment();
 
-        const isAfter = now.isSameOrAfter(
+        const isAfter = now.isAfter(
             moment(workStamp).add(1, 'hour'),
             workMinimalGranularity,
         );
@@ -55,7 +55,7 @@ export default class EventHighlightPlugin extends Plugin {
 
         const workFormatted = workStamp.format(workFormat);
         const workFromNow =
-            !isUpcomming && workStamp.diff(now, 'days') < 7
+            !isUpcomming && !isActual && workStamp.diff(now, 'days') < 7
                 ? workStamp.format('dddd').toLocaleLowerCase()
                 : workStamp.fromNow();
 
