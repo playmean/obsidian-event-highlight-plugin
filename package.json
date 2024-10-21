@@ -1,6 +1,6 @@
 {
     "name": "obsidian-event-highlight-plugin",
-    "version": "0.2.0+sha.223832f9",
+    "version": "0.3.0+sha.6edc2f1f",
     "description": "Render colored bars with relative event dates",
     "main": "main.js",
     "scripts": {
