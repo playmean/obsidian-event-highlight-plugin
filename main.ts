@@ -2,6 +2,7 @@ import { Plugin, moment, setIcon, setTooltip } from 'obsidian';
 
 export default class EventHighlightPlugin extends Plugin {
     private attributeName = 'data-datey';
+    private attributeSwapName = 'data-datey-swap';
 
     private renderElement(el: Element, source: string) {
         const parsedDate = moment(source, 'YYYY-MM-DD', true);
@@ -37,6 +38,8 @@ export default class EventHighlightPlugin extends Plugin {
             el.setAttribute(this.attributeName, source);
         }
 
+        const isSwap = el.hasAttribute(this.attributeSwapName);
+
         const dateSpan = el.createEl('div');
         const iconSpan = dateSpan.createEl('div');
 
@@ -59,9 +62,10 @@ export default class EventHighlightPlugin extends Plugin {
         moment.relativeTimeRounding(roundingDefault);
 
         dateSpan.createEl('div', {
-            text: isAfter
-                ? workFormatted
-                : `${workFromNow.slice(0, 1).toLocaleUpperCase()}${workFromNow.slice(1)}`,
+            text:
+                isAfter || isSwap
+                    ? workFormatted
+                    : `${workFromNow.slice(0, 1).toLocaleUpperCase()}${workFromNow.slice(1)}`,
         });
 
         iconSpan.style.display = 'inline-flex';
@@ -124,6 +128,16 @@ export default class EventHighlightPlugin extends Plugin {
     async onload() {
         this.registerMarkdownCodeBlockProcessor('datey', (source, el, ctx) => {
             this.renderElement(el, source.trim());
+
+            el.addEventListener('click', () => {
+                if (el.hasAttribute(this.attributeSwapName)) {
+                    el.removeAttribute(this.attributeSwapName);
+                } else {
+                    el.setAttribute(this.attributeSwapName, '');
+                }
+
+                this.renderElement(el, source.trim());
+            });
         });
 
         this.registerEvent(
