@@ -1,10 +1,70 @@
 import { Plugin, moment, setIcon, setTooltip } from 'obsidian';
 
-export default class EventHighlightPlugin extends Plugin {
-    private attributeName = 'data-datey';
-    private attributeSwapName = 'data-datey-swap';
+declare interface State {
+    source: string;
+    text: string;
 
-    private renderElement(el: Element, source: string) {
+    swapped: boolean;
+
+    isActual: boolean;
+    isUpcoming: boolean;
+    isBefore: boolean;
+}
+
+export default class EventHighlightPlugin extends Plugin {
+    private attributeStateName = 'data-datey-state';
+
+    private loadState(el: Element): State {
+        const stateString = el.getAttribute(this.attributeStateName);
+
+        const [
+            source,
+            text = '',
+
+            swapped = '',
+
+            isActual = '',
+            isUpcoming = '',
+            isBefore = '',
+        ] = stateString?.split('|') || [''];
+
+        return {
+            source,
+            text,
+
+            swapped: !!swapped,
+
+            isActual: !!isActual,
+            isUpcoming: !!isUpcoming,
+            isBefore: !!isBefore,
+        };
+    }
+
+    private saveState(el: Element, state: State) {
+        el.setAttribute(
+            this.attributeStateName,
+            [
+                state.source,
+                state.text,
+
+                state.swapped ? '1' : '',
+
+                state.isActual ? '1' : '',
+                state.isUpcoming ? '1' : '',
+                state.isBefore ? '1' : '',
+            ].join('|'),
+        );
+    }
+
+    private dropState(el: Element) {
+        el.removeAttribute(this.attributeStateName);
+    }
+
+    private isSameState(oldState: State, newState: State) {
+        return JSON.stringify(oldState) === JSON.stringify(newState);
+    }
+
+    private renderElement(el: Element, source: string, overrideState?: Partial<State>) {
         const parsedDate = moment(source, 'YYYY-MM-DD', true);
         const parsedDateTime = moment(source, 'YYYY-MM-DD HH:mm', true);
 
@@ -22,26 +82,13 @@ export default class EventHighlightPlugin extends Plugin {
             workMinimalGranularity,
         );
         const isActual = !isAfter && now.isSameOrAfter(workStamp, workMinimalGranularity);
-        const isUpcomming =
+        const isUpcoming =
             !isActual &&
             now.isSame(
                 isDateTime ? workStamp : moment(workStamp).subtract(1, 'day'),
                 'day',
             );
-        const isBefore = !isUpcomming && now.isBefore(workStamp, workGranularity);
-
-        el.innerHTML = '';
-
-        if (isAfter) {
-            el.removeAttribute(this.attributeName);
-        } else {
-            el.setAttribute(this.attributeName, source);
-        }
-
-        const isSwap = el.hasAttribute(this.attributeSwapName);
-
-        const dateSpan = el.createEl('div');
-        const iconSpan = dateSpan.createEl('div');
+        const isBefore = !isUpcoming && now.isBefore(workStamp, workGranularity);
 
         const roundingDefault = moment.relativeTimeRounding();
 
@@ -55,18 +102,46 @@ export default class EventHighlightPlugin extends Plugin {
 
         const workFormatted = workStamp.format(workFormat);
         const workFromNow =
-            !isUpcomming && !isActual && workStamp.diff(now, 'days') < 7
+            !isUpcoming && !isActual && workStamp.diff(now, 'days') < 7
                 ? workStamp.format('dddd').toLocaleLowerCase()
                 : workStamp.fromNow();
 
         moment.relativeTimeRounding(roundingDefault);
 
-        dateSpan.createEl('div', {
-            text:
-                isAfter || isSwap
-                    ? workFormatted
-                    : `${workFromNow.slice(0, 1).toLocaleUpperCase()}${workFromNow.slice(1)}`,
-        });
+        const oldState = this.loadState(el);
+
+        const text =
+            isAfter || (overrideState || oldState).swapped
+                ? workFormatted
+                : `${workFromNow.slice(0, 1).toLocaleUpperCase()}${workFromNow.slice(1)}`;
+
+        const state: State = {
+            ...oldState,
+
+            source,
+            text,
+
+            isActual,
+            isUpcoming,
+            isBefore,
+
+            ...overrideState,
+        };
+
+        if (this.isSameState(oldState, state)) return;
+
+        if (isAfter) {
+            this.dropState(el);
+        } else {
+            this.saveState(el, state);
+        }
+
+        el.innerHTML = '';
+
+        const dateSpan = el.createEl('div');
+        const iconSpan = dateSpan.createEl('div');
+
+        dateSpan.createEl('div', { text });
 
         iconSpan.style.display = 'inline-flex';
         iconSpan.style.alignItems = 'center';
@@ -84,7 +159,7 @@ export default class EventHighlightPlugin extends Plugin {
                 dateSpan.style.backgroundColor = '#404040';
 
                 setIcon(iconSpan, 'calendar-check-2');
-                setTooltip(dateSpan, `Past event`);
+                setTooltip(dateSpan, 'Past event');
 
                 break;
             case isBefore:
@@ -94,7 +169,7 @@ export default class EventHighlightPlugin extends Plugin {
                 setTooltip(dateSpan, `Event soon (${workFormatted})`);
 
                 break;
-            case isUpcomming:
+            case isUpcoming:
                 dateSpan.style.backgroundColor = '#e0a500';
                 dateSpan.style.color = '#333333';
 
@@ -114,10 +189,10 @@ export default class EventHighlightPlugin extends Plugin {
     }
 
     private updateAllPage() {
-        const elements = document.querySelectorAll(`[${this.attributeName}]`);
+        const elements = document.querySelectorAll(`[${this.attributeStateName}]`);
 
         elements.forEach((el) => {
-            const source = el.getAttribute(this.attributeName);
+            const { source } = this.loadState(el);
 
             if (!source) return;
 
@@ -130,13 +205,11 @@ export default class EventHighlightPlugin extends Plugin {
             this.renderElement(el, source.trim());
 
             el.addEventListener('click', () => {
-                if (el.hasAttribute(this.attributeSwapName)) {
-                    el.removeAttribute(this.attributeSwapName);
-                } else {
-                    el.setAttribute(this.attributeSwapName, '');
-                }
+                const { swapped } = this.loadState(el);
 
-                this.renderElement(el, source.trim());
+                this.renderElement(el, source.trim(), {
+                    swapped: !swapped,
+                });
             });
         });
 
