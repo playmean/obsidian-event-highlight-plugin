@@ -2,7 +2,7 @@
     "id": "event-highlight",
     "name": "Event Highlight",
     "description": "Render colored bars with relative event dates",
-    "version": "0.3.1+sha.bcff4cde",
+    "version": "0.3.2+sha.5539aa35",
     "author": "playmean",
     "authorUrl": "https://playmean.ru",
     "fundingUrl": "https://playmean.ru/donate",
