@@ -92,7 +92,7 @@ export default class EventHighlightPlugin extends Plugin {
 
         const roundingDefault = moment.relativeTimeRounding();
 
-        moment.relativeTimeRounding(Math.floor);
+        moment.relativeTimeRounding(Math.round);
 
         moment.relativeTimeThreshold('m', 60);
         moment.relativeTimeThreshold('h', 24);
