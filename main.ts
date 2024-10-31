@@ -101,10 +101,28 @@ export default class EventHighlightPlugin extends Plugin {
         moment.relativeTimeThreshold('M', 12);
 
         const workFormatted = workStamp.format(workFormat);
-        const workFromNow =
-            !isUpcoming && !isActual && workStamp.diff(now, 'days') < 7
-                ? workStamp.format('dddd').toLocaleLowerCase()
-                : workStamp.fromNow();
+        const workFromNow = (() => {
+            const thisWeek = !isUpcoming && !isActual && workStamp.diff(now, 'days') < 7;
+
+            const nextDayFormat = // fragile, but works
+            (
+                moment.localeData() as unknown as {
+                    _calendar: Record<string, string>;
+                }
+            )._calendar.nextDay;
+
+            if (thisWeek) {
+                return workStamp
+                    .calendar({
+                        nextDay: nextDayFormat.replace('LT', 'HH:mm'),
+                        nextWeek: 'dddd',
+                        sameElse: 'dddd',
+                    })
+                    .toLocaleLowerCase();
+            }
+
+            return workStamp.fromNow();
+        })();
 
         moment.relativeTimeRounding(roundingDefault);
 
