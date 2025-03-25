@@ -12,7 +12,7 @@ declare interface State {
 }
 
 export default class EventHighlightPlugin extends Plugin {
-    private attributeStateName = 'data-datey-state';
+    private attributeStateName = 'data-event-highlight-state';
 
     private loadState(el: Element): State {
         const stateString = el.getAttribute(this.attributeStateName);
@@ -105,11 +105,11 @@ export default class EventHighlightPlugin extends Plugin {
             const thisWeek = !isUpcoming && !isActual && workStamp.diff(now, 'days') < 7;
 
             const nextDayFormat = // fragile, but works
-            (
-                moment.localeData() as unknown as {
-                    _calendar: Record<string, string>;
-                }
-            )._calendar.nextDay;
+                (
+                    moment.localeData() as unknown as {
+                        _calendar: Record<string, string>;
+                    }
+                )._calendar.nextDay;
 
             if (thisWeek) {
                 return workStamp
@@ -219,7 +219,7 @@ export default class EventHighlightPlugin extends Plugin {
     }
 
     async onload() {
-        this.registerMarkdownCodeBlockProcessor('datey', (source, el, ctx) => {
+        this.registerMarkdownCodeBlockProcessor('event-highlight', (source, el, ctx) => {
             this.renderElement(el, source.trim());
 
             el.addEventListener('click', () => {
