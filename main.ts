@@ -1,4 +1,15 @@
 import { Plugin, moment, setIcon, setTooltip } from 'obsidian';
+import { SettingsTab } from 'settings-tab';
+
+interface PluginSettings {
+    dateFormat: string;
+    dateTimeFormat: string;
+}
+
+const defaultSettings: Partial<PluginSettings> = {
+    dateFormat: 'YYYY-MM-DD',
+    dateTimeFormat: 'YYYY-MM-DD HH:mm',
+};
 
 declare interface State {
     source: string;
@@ -13,6 +24,46 @@ declare interface State {
 
 export default class EventHighlightPlugin extends Plugin {
     private attributeStateName = 'data-event-highlight-state';
+
+    settings: PluginSettings;
+
+    async loadSettings() {
+        this.settings = Object.assign({}, defaultSettings, await this.loadData());
+    }
+
+    async saveSettings() {
+        await this.saveData(this.settings);
+    }
+
+    async onload() {
+        await this.loadSettings();
+
+        this.addSettingTab(new SettingsTab(this.app, this));
+
+        this.registerMarkdownCodeBlockProcessor('event-highlight', (source, el, ctx) => {
+            this.renderElement(el, source.trim());
+
+            el.addEventListener('click', () => {
+                const { swapped } = this.loadState(el);
+
+                this.renderElement(el, source.trim(), {
+                    swapped: !swapped,
+                });
+            });
+        });
+
+        this.registerEvent(
+            this.app.workspace.on('active-leaf-change', () => {
+                this.updateAllPage();
+            }),
+        );
+
+        this.registerInterval(
+            window.setInterval(() => {
+                this.updateAllPage();
+            }, 10_000),
+        );
+    }
 
     private loadState(el: Element): State {
         const stateString = el.getAttribute(this.attributeStateName);
@@ -74,7 +125,9 @@ export default class EventHighlightPlugin extends Plugin {
 
         const isDateTime = parsedDateTime.isValid();
 
-        const workFormat = isDateTime ? 'DD.MM.YYYY HH:mm' : 'DD.MM.YYYY';
+        const workFormat = isDateTime
+            ? this.settings.dateTimeFormat
+            : this.settings.dateFormat;
         const workStamp = isDateTime ? parsedDateTime : parsedDate;
         const workGranularity = isDateTime ? 'hour' : 'day';
         const workMinimalGranularity = isDateTime ? 'minute' : 'day';
@@ -215,31 +268,5 @@ export default class EventHighlightPlugin extends Plugin {
 
             this.renderElement(el, source);
         });
-    }
-
-    async onload() {
-        this.registerMarkdownCodeBlockProcessor('event-highlight', (source, el, ctx) => {
-            this.renderElement(el, source.trim());
-
-            el.addEventListener('click', () => {
-                const { swapped } = this.loadState(el);
-
-                this.renderElement(el, source.trim(), {
-                    swapped: !swapped,
-                });
-            });
-        });
-
-        this.registerEvent(
-            this.app.workspace.on('active-leaf-change', () => {
-                this.updateAllPage();
-            }),
-        );
-
-        this.registerInterval(
-            window.setInterval(() => {
-                this.updateAllPage();
-            }, 10_000),
-        );
     }
 }
