@@ -65,8 +65,12 @@ export default class EventHighlightPlugin extends Plugin {
     }
 
     private renderElement(el: Element, source: string, overrideState?: Partial<State>) {
-        const parsedDate = moment(source, 'YYYY-MM-DD', true);
-        const parsedDateTime = moment(source, 'YYYY-MM-DD HH:mm', true);
+        const parsedDate = moment(source, ['YYYY-MM-DD', 'DD.MM.YYYY'], true);
+        const parsedDateTime = moment(
+            source,
+            ['YYYY-MM-DD HH:mm', 'DD.MM.YYYY HH:mm'],
+            true,
+        );
 
         const isDateTime = parsedDateTime.isValid();
 
