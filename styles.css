@@ -13,26 +13,30 @@
 }
 
 .event-highlight-badge.after {
-    background-color: #404040;
+    background-color: var(--background-secondary-alt);
+    color: var(--mono-rgb-255);
 }
 
 .event-highlight-badge.before {
-    background-color: #008000;
+    background-color: rgba(var(--color-green-rgb), 0.2);
+    color: var(--color-green);
 }
 
 .event-highlight-badge.upcoming {
-    background-color: #e0a500;
-    color: #333333;
+    background-color: rgba(var(--color-yellow-rgb), 0.2);
+    color: var(--color-yellow);
 }
 
 .event-highlight-badge.actual {
-    background-color: #800080;
+    background-color: rgba(var(--color-purple-rgb), 0.2);
+    color: var(--color-purple);
 
     font-weight: bold;
 }
 
 .event-highlight-badge.error {
-    background-color: #a50000;
+    background-color: rgba(var(--color-red-rgb), 0.2);
+    color: var(--color-red);
 
     font-weight: bold;
 }
