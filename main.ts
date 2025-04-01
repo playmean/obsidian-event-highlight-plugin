@@ -81,6 +81,7 @@ export default class EventHighlightPlugin extends Plugin {
 
         const now = moment();
 
+        const isError = !workStamp.isValid();
         const isAfter = now.isAfter(
             moment(workStamp).add(1, 'hour'),
             workMinimalGranularity,
@@ -158,50 +159,44 @@ export default class EventHighlightPlugin extends Plugin {
             this.saveState(el, state);
         }
 
-        el.innerHTML = '';
+        el.empty();
 
-        const dateSpan = el.createEl('div');
-        const iconSpan = dateSpan.createEl('div');
+        const dateSpan = el.createEl('div', { cls: 'event-highlight-badge' });
+        const iconSpan = dateSpan.createEl('div', { cls: 'icon' });
 
         dateSpan.createEl('div', { text });
 
-        iconSpan.style.display = 'inline-flex';
-        iconSpan.style.alignItems = 'center';
-
-        dateSpan.style.display = 'inline-flex';
-        dateSpan.style.alignItems = 'center';
-        dateSpan.style.gap = '4px';
-        dateSpan.style.borderRadius = '4px';
-        dateSpan.style.padding = '2px 4px';
-        dateSpan.style.userSelect = 'none';
-        dateSpan.style.cursor = 'default';
-
         switch (true) {
+            case isError:
+                dateSpan.classList.add('error');
+
+                setIcon(iconSpan, 'ban');
+                setTooltip(dateSpan, 'Invalid date');
+
+                break;
             case isAfter:
-                dateSpan.style.backgroundColor = '#404040';
+                dateSpan.classList.add('after');
 
                 setIcon(iconSpan, 'calendar-check-2');
                 setTooltip(dateSpan, 'Past event');
 
                 break;
             case isBefore:
-                dateSpan.style.backgroundColor = 'green';
+                dateSpan.classList.add('before');
 
                 setIcon(iconSpan, 'calendar');
                 setTooltip(dateSpan, `Event soon (${workFormatted})`);
 
                 break;
             case isUpcoming:
-                dateSpan.style.backgroundColor = '#e0a500';
-                dateSpan.style.color = '#333333';
+                dateSpan.classList.add('upcoming');
 
                 setIcon(iconSpan, 'calendar-clock');
                 setTooltip(dateSpan, `Upcoming event (${workFormatted})`);
 
                 break;
             case isActual:
-                dateSpan.style.backgroundColor = 'purple';
-                dateSpan.style.fontWeight = 'bold';
+                dateSpan.classList.add('actual');
 
                 setIcon(iconSpan, 'clock');
                 setTooltip(dateSpan, `Event started (${workFormatted})`);

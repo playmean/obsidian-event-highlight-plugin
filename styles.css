@@ -1,0 +1,44 @@
+.event-highlight-badge {
+    padding: 2px 4px;
+
+    display: inline-flex;
+
+    align-items: center;
+    gap: 4px;
+
+    border-radius: 4px;
+
+    user-select: none;
+    cursor: default;
+}
+
+.event-highlight-badge.after {
+    background-color: #404040;
+}
+
+.event-highlight-badge.before {
+    background-color: #008000;
+}
+
+.event-highlight-badge.upcoming {
+    background-color: #e0a500;
+    color: #333333;
+}
+
+.event-highlight-badge.actual {
+    background-color: #800080;
+
+    font-weight: bold;
+}
+
+.event-highlight-badge.error {
+    background-color: #a50000;
+
+    font-weight: bold;
+}
+
+.event-highlight-badge .icon {
+    display: inline-flex;
+
+    align-items: center;
+}
