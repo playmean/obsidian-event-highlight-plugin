@@ -1,4 +1,4 @@
-import { Plugin, moment, setIcon, setTooltip } from 'obsidian';
+import { MarkdownRenderer, Plugin, moment, setIcon, setTooltip } from 'obsidian';
 import { SettingsTab } from 'settings-tab';
 
 interface PluginSettings {
@@ -40,27 +40,33 @@ export default class EventHighlightPlugin extends Plugin {
 
         this.addSettingTab(new SettingsTab(this.app, this));
 
-        this.registerMarkdownCodeBlockProcessor('event-highlight', (source, el, ctx) => {
-            this.renderElement(el, source.trim());
+        this.registerMarkdownCodeBlockProcessor(
+            'event-highlight',
+            async (source, el, ctx) => {
+                await this.renderElement(el, source.trim(), undefined, ctx.sourcePath);
 
-            el.addEventListener('click', () => {
-                const { swapped } = this.loadState(el);
+                el.addEventListener('click', async () => {
+                    const { swapped } = this.loadState(el);
 
-                this.renderElement(el, source.trim(), {
-                    swapped: !swapped,
+                    await this.renderElement(
+                        el,
+                        source.trim(),
+                        { swapped: !swapped },
+                        ctx.sourcePath,
+                    );
                 });
-            });
-        });
+            },
+        );
 
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', () => {
-                this.updateAllPage();
+                void this.updateAllPage();
             }),
         );
 
         this.registerInterval(
             window.setInterval(() => {
-                this.updateAllPage();
+                void this.updateAllPage();
             }, 10_000),
         );
     }
@@ -115,10 +121,17 @@ export default class EventHighlightPlugin extends Plugin {
         return JSON.stringify(oldState) === JSON.stringify(newState);
     }
 
-    private renderElement(el: Element, source: string, overrideState?: Partial<State>) {
-        const parsedDate = moment(source, ['YYYY-MM-DD', 'DD.MM.YYYY'], true);
+    private async renderElement(
+        el: Element,
+        source: string,
+        overrideState?: Partial<State>,
+        sourcePath = '',
+    ) {
+        const { dateSource, extraText } = this.parseSource(source);
+
+        const parsedDate = moment(dateSource, ['YYYY-MM-DD', 'DD.MM.YYYY'], true);
         const parsedDateTime = moment(
-            source,
+            dateSource,
             ['YYYY-MM-DD HH:mm', 'DD.MM.YYYY HH:mm'],
             true,
         );
@@ -214,14 +227,27 @@ export default class EventHighlightPlugin extends Plugin {
 
         el.empty();
 
-        const dateSpan = el.createEl('div', { cls: 'event-highlight-badge' });
+        const container = el.createEl('div', { cls: 'event-highlight-container' });
+
+        if (extraText) {
+            const textEl = container.createEl('div', { cls: 'event-highlight-text' });
+
+            await MarkdownRenderer.render(this.app, extraText, textEl, sourcePath, this);
+        }
+
+        const dateSpan = container.createEl('div', { cls: 'event-highlight-badge' });
         const iconSpan = dateSpan.createEl('div', { cls: 'icon' });
+
+        if (extraText) {
+            dateSpan.classList.add('with-text');
+        }
 
         dateSpan.createEl('div', { text });
 
         switch (true) {
             case isError:
                 dateSpan.classList.add('error');
+                container.classList.add('error');
 
                 setIcon(iconSpan, 'ban');
                 setTooltip(dateSpan, 'Invalid date');
@@ -229,6 +255,7 @@ export default class EventHighlightPlugin extends Plugin {
                 break;
             case isAfter:
                 dateSpan.classList.add('after');
+                container.classList.add('after');
 
                 setIcon(iconSpan, 'calendar-check-2');
                 setTooltip(dateSpan, 'Past event');
@@ -236,6 +263,7 @@ export default class EventHighlightPlugin extends Plugin {
                 break;
             case isBefore:
                 dateSpan.classList.add('before');
+                container.classList.add('before');
 
                 setIcon(iconSpan, 'calendar');
                 setTooltip(dateSpan, `Event soon (${workFormatted})`);
@@ -243,6 +271,7 @@ export default class EventHighlightPlugin extends Plugin {
                 break;
             case isUpcoming:
                 dateSpan.classList.add('upcoming');
+                container.classList.add('upcoming');
 
                 setIcon(iconSpan, 'calendar-clock');
                 setTooltip(dateSpan, `Upcoming event (${workFormatted})`);
@@ -250,6 +279,7 @@ export default class EventHighlightPlugin extends Plugin {
                 break;
             case isActual:
                 dateSpan.classList.add('actual');
+                container.classList.add('actual');
 
                 setIcon(iconSpan, 'clock');
                 setTooltip(dateSpan, `Event started (${workFormatted})`);
@@ -258,15 +288,25 @@ export default class EventHighlightPlugin extends Plugin {
         }
     }
 
-    private updateAllPage() {
+    private async updateAllPage() {
         const elements = document.querySelectorAll(`[${this.attributeStateName}]`);
 
-        elements.forEach((el) => {
+        const sourcePath = this.app.workspace.getActiveFile()?.path ?? '';
+
+        for (const el of Array.from(elements)) {
             const { source } = this.loadState(el);
 
             if (!source) return;
 
-            this.renderElement(el, source);
-        });
+            await this.renderElement(el, source, undefined, sourcePath);
+        }
+    }
+
+    private parseSource(source: string) {
+        const lines = source.split(/\r?\n/);
+        const dateSource = (lines[0] || '').trim();
+        const extraText = lines.slice(1).join('\n').trim();
+
+        return { dateSource, extraText };
     }
 }
