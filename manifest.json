@@ -2,7 +2,7 @@
     "id": "event-highlight",
     "name": "Event Highlight",
     "description": "Render colored bars with relative event dates",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "author": "playmean",
     "authorUrl": "https://github.com/playmean",
     "minAppVersion": "0.15.0",
